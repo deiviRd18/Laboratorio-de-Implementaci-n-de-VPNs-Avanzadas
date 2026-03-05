@@ -1,0 +1,109 @@
+1. Router ISP (El puente)
+Fragmento de código
+configure terminal
+! -- Interfaces ISP --
+interface GigabitEthernet1/0
+ ip address 20.24.20.1 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet2/0
+ ip address 20.24.20.5 255.255.255.252
+ no shutdown
+ exit
+2. Router 1 (Sede 1)
+Fragmento de código
+configure terminal
+
+! -- Interfaces Físicas y Enrutamiento Básico --
+interface GigabitEthernet1/0
+ ip address 20.24.20.2 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet2/0
+ ip address 192.168.10.1 255.255.255.0
+ no shutdown
+ exit
+
+ip route 0.0.0.0 0.0.0.0 20.24.20.1
+
+! -- IKEv1 Fase 1 (Túnel de Administración) --
+crypto isakmp policy 10
+ encryption aes 256
+ hash sha
+ authentication pre-share
+ group 14
+ exit
+crypto isakmp key Cisco123 address 20.24.20.6
+
+! -- IPSec Fase 2 (Transform Set y Perfil VTI) --
+crypto ipsec transform-set TS_VTI esp-aes 256 esp-sha-hmac
+ mode tunnel
+ exit
+
+crypto ipsec profile PROF_VTI
+ set transform-set TS_VTI
+ exit
+
+! -- Interfaz Túnel Virtual (La magia de VTI) --
+interface Tunnel0
+ ip address 10.10.10.1 255.255.255.252
+ tunnel source GigabitEthernet1/0
+ tunnel destination 20.24.20.6
+ tunnel protection ipsec profile PROF_VTI
+ exit
+
+! -- Enrutamiento de la LAN remota hacia el Túnel --
+ip route 192.168.20.0 255.255.255.0 Tunnel0
+3. Router 2 (Sede 2)
+Fragmento de código
+configure terminal
+
+! -- Interfaces Físicas y Enrutamiento Básico --
+interface GigabitEthernet1/0
+ ip address 20.24.20.6 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet2/0
+ ip address 192.168.20.1 255.255.255.0
+ no shutdown
+ exit
+
+ip route 0.0.0.0 0.0.0.0 20.24.20.5
+
+! -- IKEv1 Fase 1 (Túnel de Administración) --
+crypto isakmp policy 10
+ encryption aes 256
+ hash sha
+ authentication pre-share
+ group 14
+ exit
+crypto isakmp key Cisco123 address 20.24.20.2
+
+! -- IPSec Fase 2 (Transform Set y Perfil VTI) --
+crypto ipsec transform-set TS_VTI esp-aes 256 esp-sha-hmac
+ mode tunnel
+ exit
+
+crypto ipsec profile PROF_VTI
+ set transform-set TS_VTI
+ exit
+
+! -- Interfaz Túnel Virtual (La magia de VTI) --
+interface Tunnel0
+ ip address 10.10.10.2 255.255.255.252
+ tunnel source GigabitEthernet1/0
+ tunnel destination 20.24.20.2
+ tunnel protection ipsec profile PROF_VTI
+ exit
+
+! -- Enrutamiento de la LAN remota hacia el Túnel --
+ip route 192.168.10.0 255.255.255.0 Tunnel0
+4. Clientes VPCs
+Plaintext
+# En la consola de VPC 1:
+ip 192.168.10.10 255.255.255.0 192.168.10.1
+save
+
+# En la consola de VPC 2:
+ip 192.168.20.10 255.255.255.0 192.168.20.1
+save

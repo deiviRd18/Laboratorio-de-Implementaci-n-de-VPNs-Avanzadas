@@ -1,0 +1,147 @@
+1. Router ISP (El puente)
+Fragmento de código
+configure terminal
+! -- Interfaces ISP --
+interface GigabitEthernet1/0
+ ip address 20.24.20.1 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet2/0
+ ip address 20.24.20.5 255.255.255.252
+ no shutdown
+ exit
+2. Router 1 (Sede 1)
+Fragmento de código
+configure terminal
+! -- Interfaces y Enrutamiento --
+interface GigabitEthernet1/0
+ ip address 20.24.20.2 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet2/0
+ ip address 192.168.10.1 255.255.255.0
+ no shutdown
+ exit
+
+ip route 0.0.0.0 0.0.0.0 20.24.20.1
+
+! -- Tráfico Interesante (ACL) --
+access-list 100 permit ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
+
+! -- IKEv2 Fase 1 (Propuesta, Política, Keyring y Perfil) --
+crypto ikev2 proposal PROP_IKEV2
+ encryption aes-cbc-256
+ integrity sha1
+ group 14
+ exit
+
+crypto ikev2 policy POL_IKEV2
+ proposal PROP_IKEV2
+ exit
+
+crypto ikev2 keyring KEYS_IKEV2
+ peer R2
+  address 20.24.20.6
+  pre-shared-key local Cisco123
+  pre-shared-key remote Cisco123
+  exit
+ exit
+
+crypto ikev2 profile PROF_IKEV2
+ match identity remote address 20.24.20.6 255.255.255.255
+ identity local address 20.24.20.2
+ authentication remote pre-share
+ authentication local pre-share
+ keyring local KEYS_IKEV2
+ exit
+
+! -- IPSec Fase 2 (Túnel de Datos) --
+crypto ipsec transform-set TS_IKEV2 esp-aes 256 esp-sha-hmac
+ mode tunnel
+ exit
+
+! -- Crypto Map (Unificando IKEv2 e IPSec) --
+crypto map MAPA_VPN 10 ipsec-isakmp
+ set peer 20.24.20.6
+ set transform-set TS_IKEV2
+ set ikev2-profile PROF_IKEV2
+ match address 100
+ exit
+
+! -- Aplicación a la interfaz WAN --
+interface GigabitEthernet1/0
+ crypto map MAPA_VPN
+ exit
+3. Router 2 (Sede 2)
+(Este ya tiene las IPs y la ruta corregidas tras el error de clonación)
+
+Fragmento de código
+configure terminal
+! -- Interfaces y Enrutamiento --
+interface GigabitEthernet1/0
+ ip address 20.24.20.6 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet2/0
+ ip address 192.168.20.1 255.255.255.0
+ no shutdown
+ exit
+
+ip route 0.0.0.0 0.0.0.0 20.24.20.5
+
+! -- Tráfico Interesante (ACL Invertida) --
+access-list 100 permit ip 192.168.20.0 0.0.0.255 192.168.10.0 0.0.0.255
+
+! -- IKEv2 Fase 1 (Propuesta, Política, Keyring y Perfil) --
+crypto ikev2 proposal PROP_IKEV2
+ encryption aes-cbc-256
+ integrity sha1
+ group 14
+ exit
+
+crypto ikev2 policy POL_IKEV2
+ proposal PROP_IKEV2
+ exit
+
+crypto ikev2 keyring KEYS_IKEV2
+ peer R1
+  address 20.24.20.2
+  pre-shared-key local Cisco123
+  pre-shared-key remote Cisco123
+  exit
+ exit
+
+crypto ikev2 profile PROF_IKEV2
+ match identity remote address 20.24.20.2 255.255.255.255
+ identity local address 20.24.20.6
+ authentication remote pre-share
+ authentication local pre-share
+ keyring local KEYS_IKEV2
+ exit
+
+! -- IPSec Fase 2 (Túnel de Datos) --
+crypto ipsec transform-set TS_IKEV2 esp-aes 256 esp-sha-hmac
+ mode tunnel
+ exit
+
+! -- Crypto Map (Unificando IKEv2 e IPSec) --
+crypto map MAPA_VPN 10 ipsec-isakmp
+ set peer 20.24.20.2
+ set transform-set TS_IKEV2
+ set ikev2-profile PROF_IKEV2
+ match address 100
+ exit
+
+! -- Aplicación a la interfaz WAN --
+interface GigabitEthernet1/0
+ crypto map MAPA_VPN
+ exit
+4. Clientes VPCs
+Plaintext
+# En la consola de VPC 1:
+ip 192.168.10.10 255.255.255.0 192.168.10.1
+save
+
+# En la consola de VPC 2:
+ip 192.168.20.10 255.255.255.0 192.168.20.1
+save

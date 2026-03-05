@@ -1,0 +1,191 @@
+1. Router ISP (El Centro de la WAN)
+Fragmento de código
+configure terminal
+! -- Conexión al Hub --
+interface GigabitEthernet1/0
+ ip address 20.0.0.1 255.255.255.252
+ no shutdown
+ exit
+! -- Conexión a Spoke 1 --
+interface GigabitEthernet2/0
+ ip address 20.0.1.1 255.255.255.252
+ no shutdown
+ exit
+! -- Conexión a Spoke 2 --
+interface GigabitEthernet3/0
+ ip address 20.0.2.1 255.255.255.252
+ no shutdown
+ exit
+2. Router HUB (Sede Central)
+Fragmento de código
+configure terminal
+
+! -- Interfaces Físicas y Enrutamiento Básico --
+interface GigabitEthernet1/0
+ ip address 20.0.0.2 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet2/0
+ ip address 192.168.10.1 255.255.255.0
+ no shutdown
+ exit
+
+ip route 0.0.0.0 0.0.0.0 20.0.0.1
+
+! -- IKEv1 Fase 1 (Acepta conexiones de cualquier Spoke) --
+crypto isakmp policy 10
+ encryption aes 256
+ hash sha
+ authentication pre-share
+ group 14
+ exit
+crypto isakmp key Cisco123 address 0.0.0.0
+
+! -- IPSec Fase 2 (TRANSPORT Mode) --
+crypto ipsec transform-set TS_DMVPN esp-aes 256 esp-sha-hmac
+ mode transport
+ exit
+
+crypto ipsec profile PROF_DMVPN
+ set transform-set TS_DMVPN
+ exit
+
+! -- Interfaz Túnel DMVPN multipunto (Hub) --
+interface Tunnel0
+ ip address 172.16.0.1 255.255.255.0
+ no ip redirects
+ ip nhrp network-id 1
+ ip nhrp map multicast dynamic
+ tunnel source GigabitEthernet1/0
+ tunnel mode gre multipoint
+ tunnel protection ipsec profile PROF_DMVPN
+ ! Clave para Fase 2: Permitir que los Spokes se hablen
+ no ip split-horizon eigrp 100
+ no ip next-hop-self eigrp 100
+ exit
+
+! -- Enrutamiento Dinámico EIGRP --
+router eigrp 100
+ network 172.16.0.0 0.0.0.255
+ network 192.168.10.0 0.0.0.255
+ exit
+3. Router SPOKE 1 (Sucursal 1)
+Fragmento de código
+configure terminal
+
+! -- Interfaces Físicas y Enrutamiento Básico --
+interface GigabitEthernet1/0
+ ip address 20.0.1.2 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet2/0
+ ip address 192.168.20.1 255.255.255.0
+ no shutdown
+ exit
+
+ip route 0.0.0.0 0.0.0.0 20.0.1.1
+
+! -- IKEv1 Fase 1 --
+crypto isakmp policy 10
+ encryption aes 256
+ hash sha
+ authentication pre-share
+ group 14
+ exit
+crypto isakmp key Cisco123 address 20.0.0.2
+
+! -- IPSec Fase 2 (TRANSPORT Mode) --
+crypto ipsec transform-set TS_DMVPN esp-aes 256 esp-sha-hmac
+ mode transport
+ exit
+
+crypto ipsec profile PROF_DMVPN
+ set transform-set TS_DMVPN
+ exit
+
+! -- Interfaz Túnel DMVPN multipunto (Spoke 1) --
+interface Tunnel0
+ ip address 172.16.0.2 255.255.255.0
+ no ip redirects
+ ip nhrp network-id 1
+ ip nhrp nhs 172.16.0.1
+ ip nhrp map 172.16.0.1 20.0.0.2
+ ip nhrp map multicast 20.0.0.2
+ tunnel source GigabitEthernet1/0
+ tunnel mode gre multipoint
+ tunnel protection ipsec profile PROF_DMVPN
+ exit
+
+! -- Enrutamiento Dinámico EIGRP --
+router eigrp 100
+ network 172.16.0.0 0.0.0.255
+ network 192.168.20.0 0.0.0.255
+ exit
+4. Router SPOKE 2 (Sucursal 2)
+Fragmento de código
+configure terminal
+
+! -- Interfaces Físicas y Enrutamiento Básico --
+interface GigabitEthernet1/0
+ ip address 20.0.2.2 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet2/0
+ ip address 192.168.30.1 255.255.255.0
+ no shutdown
+ exit
+
+ip route 0.0.0.0 0.0.0.0 20.0.2.1
+
+! -- IKEv1 Fase 1 --
+crypto isakmp policy 10
+ encryption aes 256
+ hash sha
+ authentication pre-share
+ group 14
+ exit
+crypto isakmp key Cisco123 address 20.0.0.2
+
+! -- IPSec Fase 2 (TRANSPORT Mode) --
+crypto ipsec transform-set TS_DMVPN esp-aes 256 esp-sha-hmac
+ mode transport
+ exit
+
+crypto ipsec profile PROF_DMVPN
+ set transform-set TS_DMVPN
+ exit
+
+! -- Interfaz Túnel DMVPN multipunto (Spoke 2) --
+interface Tunnel0
+ ip address 172.16.0.3 255.255.255.0
+ no ip redirects
+ ip nhrp network-id 1
+ ip nhrp nhs 172.16.0.1
+ ip nhrp map 172.16.0.1 20.0.0.2
+ ip nhrp map multicast 20.0.0.2
+ tunnel source GigabitEthernet1/0
+ tunnel mode gre multipoint
+ tunnel protection ipsec profile PROF_DMVPN
+ exit
+
+! -- Enrutamiento Dinámico EIGRP --
+router eigrp 100
+ network 172.16.0.0 0.0.0.255
+ network 192.168.30.0 0.0.0.255
+ exit
+5. Clientes (VPCs)
+VPC HUB (Sede Central):
+
+Plaintext
+ip 192.168.10.10 255.255.255.0 192.168.10.1
+save
+VPC SPOKE 1:
+
+Plaintext
+ip 192.168.20.10 255.255.255.0 192.168.20.1
+save
+VPC SPOKE 2:
+
+Plaintext
+ip 192.168.30.10 255.255.255.0 192.168.30.1
+save

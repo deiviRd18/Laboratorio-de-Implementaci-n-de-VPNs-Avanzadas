@@ -1,0 +1,117 @@
+1. Router ISP 
+
+configure terminal
+! -- Interfaces ISP --
+interface GigabitEthernet1/0
+ ip address 20.24.20.1 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet2/0
+ ip address 20.24.20.5 255.255.255.252
+ no shutdown
+ exit
+------------------------------------------------------------
+2. Router 1 (Sede 1)
+
+configure terminal
+! -- Interfaces R1 --
+interface GigabitEthernet1/0
+ ip address 20.24.20.2 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet2/0
+ ip address 192.168.10.1 255.255.255.0
+ no shutdown
+ exit
+
+! -- Enrutamiento Básico --
+ip route 0.0.0.0 0.0.0.0 20.24.20.1
+
+! -- Tráfico Interesante (ACL) --
+access-list 100 permit ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
+
+! -- IKEv1 Fase 1 (Túnel de Administración) --
+crypto isakmp policy 10
+ encryption aes 256
+ hash sha
+ authentication pre-share
+ group 14
+ exit
+crypto isakmp key Cisco123 address 20.24.20.6
+
+! -- IPSec Fase 2 (Túnel de Datos) --
+crypto ipsec transform-set TS_VPN esp-aes 256 esp-sha-hmac
+ mode tunnel
+ exit
+
+! -- Crypto Map (Unificando las políticas) --
+crypto map MAPA_VPN 10 ipsec-isakmp
+ match address 100
+ set peer 20.24.20.6
+ set transform-set TS_VPN
+ exit
+
+! -- Aplicación a la interfaz WAN --
+interface GigabitEthernet1/0
+ crypto map MAPA_VPN
+ exit
+
+--------------------------------------------
+
+3. Router 2 (Sede 2)
+
+configure terminal
+! -- Interfaces R2 --
+interface GigabitEthernet1/0
+ ip address 20.24.20.6 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet2/0
+ ip address 192.168.20.1 255.255.255.0
+ no shutdown
+ exit
+
+! -- Enrutamiento Básico --
+ip route 0.0.0.0 0.0.0.0 20.24.20.5
+
+! -- Tráfico Interesante (ACL Invertida) --
+access-list 100 permit ip 192.168.20.0 0.0.0.255 192.168.10.0 0.0.0.255
+
+! -- IKEv1 Fase 1 (Túnel de Administración) --
+crypto isakmp policy 10
+ encryption aes 256
+ hash sha
+ authentication pre-share
+ group 14
+ exit
+crypto isakmp key Cisco123 address 20.24.20.2
+
+! -- IPSec Fase 2 (Túnel de Datos) --
+crypto ipsec transform-set TS_VPN esp-aes 256 esp-sha-hmac
+ mode tunnel
+ exit
+
+! -- Crypto Map (Unificando las políticas) --
+crypto map MAPA_VPN 10 ipsec-isakmp
+ match address 100
+ set peer 20.24.20.2
+ set transform-set TS_VPN
+ exit
+
+! -- Aplicación a la interfaz WAN --
+interface GigabitEthernet1/0
+ crypto map MAPA_VPN
+ exit
+
+
+-------------------------------------------
+
+4. Clientes VPCs
+
+# En la consola de VPC 1:
+ip 192.168.10.10 255.255.255.0 192.168.10.1
+save
+
+# En la consola de VPC 2:
+ip 192.168.20.10 255.255.255.0 192.168.20.1
+save

@@ -1,0 +1,232 @@
+1. Router ISP (El Centro de la WAN)
+Fragmento de código
+configure terminal
+! -- Conexiones (Gi1/0 a HUB, Gi2/0 a SPOKE-1, Gi3/0 a SPOKE-2) --
+interface GigabitEthernet1/0
+ ip address 20.0.0.1 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet2/0
+ ip address 20.0.1.1 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet3/0
+ ip address 20.0.2.1 255.255.255.252
+ no shutdown
+ exit
+2. Router HUB (Sede Central)
+Fragmento de código
+configure terminal
+! -- 1. Interfaz Física (Hacia el ISP) --
+interface GigabitEthernet1/0
+ ip address 20.0.0.2 255.255.255.252
+ no shutdown
+ exit
+ip route 0.0.0.0 0.0.0.0 20.0.0.1
+
+! -- 2. IKEv2 Fase 1 (Soporte multipunto dinámico) --
+crypto ikev2 proposal PROP_IKEV2
+ encryption aes-cbc-256
+ integrity sha1
+ group 14
+ exit
+
+crypto ikev2 policy POL_IKEV2
+ proposal PROP_IKEV2
+ exit
+
+crypto ikev2 keyring KEYS_IKEV2
+ peer CUALQUIERA
+  address 0.0.0.0 0.0.0.0
+  pre-shared-key local Cisco123
+  pre-shared-key remote Cisco123
+  exit
+ exit
+
+crypto ikev2 profile PROF_IKEV2
+ match identity remote address 0.0.0.0
+ identity local address 20.0.0.2
+ authentication remote pre-share
+ authentication local pre-share
+ keyring local KEYS_IKEV2
+ exit
+
+! -- 3. IPSec Fase 2 (TRANSPORT Mode) --
+crypto ipsec transform-set TS_DMVPN esp-aes 256 esp-sha-hmac
+ mode transport
+ exit
+
+crypto ipsec profile IPSEC_PROF_DMVPN
+ set transform-set TS_DMVPN
+ set ikev2-profile PROF_IKEV2
+ exit
+
+! -- 4. Interfaz Túnel DMVPN FASE 3 --
+interface Tunnel0
+ ip address 172.16.0.1 255.255.255.0
+ no ip redirects
+ ip nhrp network-id 1
+ ip nhrp map multicast dynamic
+ ip nhrp redirect   ! <--- CLAVE PARA LA FASE 3
+ tunnel source GigabitEthernet1/0
+ tunnel mode gre multipoint
+ tunnel protection ipsec profile IPSEC_PROF_DMVPN
+ no ip split-horizon eigrp 100
+ no ip next-hop-self eigrp 100
+ exit
+
+! -- 5. Enrutamiento Dinámico --
+router eigrp 100
+ network 172.16.0.0 0.0.0.255
+ exit
+3. Router SPOKE 1
+Fragmento de código
+configure terminal
+! -- 1. Interfaces Físicas --
+interface GigabitEthernet1/0
+ ip address 20.0.1.2 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet2/0
+ ip address 192.168.20.1 255.255.255.0
+ no shutdown
+ exit
+ip route 0.0.0.0 0.0.0.0 20.0.1.1
+
+! -- 2. IKEv2 Fase 1 --
+crypto ikev2 proposal PROP_IKEV2
+ encryption aes-cbc-256
+ integrity sha1
+ group 14
+ exit
+
+crypto ikev2 policy POL_IKEV2
+ proposal PROP_IKEV2
+ exit
+
+crypto ikev2 keyring KEYS_IKEV2
+ peer HUB
+  address 0.0.0.0 0.0.0.0
+  pre-shared-key local Cisco123
+  pre-shared-key remote Cisco123
+  exit
+ exit
+
+crypto ikev2 profile PROF_IKEV2
+ match identity remote address 0.0.0.0
+ identity local address 20.0.1.2
+ authentication remote pre-share
+ authentication local pre-share
+ keyring local KEYS_IKEV2
+ exit
+
+! -- 3. IPSec Fase 2 --
+crypto ipsec transform-set TS_DMVPN esp-aes 256 esp-sha-hmac
+ mode transport
+ exit
+
+crypto ipsec profile IPSEC_PROF_DMVPN
+ set transform-set TS_DMVPN
+ set ikev2-profile PROF_IKEV2
+ exit
+
+! -- 4. Interfaz Túnel DMVPN FASE 3 --
+interface Tunnel0
+ ip address 172.16.0.2 255.255.255.0
+ no ip redirects
+ ip nhrp network-id 1
+ ip nhrp nhs 172.16.0.1
+ ip nhrp map 172.16.0.1 20.0.0.2
+ ip nhrp map multicast 20.0.0.2
+ ip nhrp shortcut   ! <--- CLAVE PARA LA FASE 3
+ tunnel source GigabitEthernet1/0
+ tunnel mode gre multipoint
+ tunnel protection ipsec profile IPSEC_PROF_DMVPN
+ exit
+
+! -- 5. Enrutamiento Dinámico --
+router eigrp 100
+ network 172.16.0.0 0.0.0.255
+ network 192.168.20.0 0.0.0.255
+ exit
+4. Router SPOKE 2
+Fragmento de código
+configure terminal
+! -- 1. Interfaces Físicas --
+interface GigabitEthernet1/0
+ ip address 20.0.2.2 255.255.255.252
+ no shutdown
+ exit
+interface GigabitEthernet2/0
+ ip address 192.168.30.1 255.255.255.0
+ no shutdown
+ exit
+ip route 0.0.0.0 0.0.0.0 20.0.2.1
+
+! -- 2. IKEv2 Fase 1 --
+crypto ikev2 proposal PROP_IKEV2
+ encryption aes-cbc-256
+ integrity sha1
+ group 14
+ exit
+
+crypto ikev2 policy POL_IKEV2
+ proposal PROP_IKEV2
+ exit
+
+crypto ikev2 keyring KEYS_IKEV2
+ peer HUB
+  address 0.0.0.0 0.0.0.0
+  pre-shared-key local Cisco123
+  pre-shared-key remote Cisco123
+  exit
+ exit
+
+crypto ikev2 profile PROF_IKEV2
+ match identity remote address 0.0.0.0
+ identity local address 20.0.2.2
+ authentication remote pre-share
+ authentication local pre-share
+ keyring local KEYS_IKEV2
+ exit
+
+! -- 3. IPSec Fase 2 --
+crypto ipsec transform-set TS_DMVPN esp-aes 256 esp-sha-hmac
+ mode transport
+ exit
+
+crypto ipsec profile IPSEC_PROF_DMVPN
+ set transform-set TS_DMVPN
+ set ikev2-profile PROF_IKEV2
+ exit
+
+! -- 4. Interfaz Túnel DMVPN FASE 3 --
+interface Tunnel0
+ ip address 172.16.0.3 255.255.255.0
+ no ip redirects
+ ip nhrp network-id 1
+ ip nhrp nhs 172.16.0.1
+ ip nhrp map 172.16.0.1 20.0.0.2
+ ip nhrp map multicast 20.0.0.2
+ ip nhrp shortcut   ! <--- CLAVE PARA LA FASE 3
+ tunnel source GigabitEthernet1/0
+ tunnel mode gre multipoint
+ tunnel protection ipsec profile IPSEC_PROF_DMVPN
+ exit
+
+! -- 5. Enrutamiento Dinámico --
+router eigrp 100
+ network 172.16.0.0 0.0.0.255
+ network 192.168.30.0 0.0.0.255
+ exit
+5. Las VPCs (¡No olvides el save!)
+En PC1:
+
+Plaintext
+ip 192.168.20.10 255.255.255.0 192.168.20.1
+save
+En PC2:
+
+Plaintext
+ip 192.168.30.10 255.255.255.0 192.168.30.1
+save
