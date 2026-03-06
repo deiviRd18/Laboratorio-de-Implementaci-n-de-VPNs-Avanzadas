@@ -1,9 +1,7 @@
 # Laboratorio de Implementación de VPNs Avanzadas
 
 **Institución:** Instituto Tecnológico de las Américas (ITLA)  
-**Estudiante:** Junior (Deivi) - [ESCRIBE TU MATRÍCULA AQUÍ]  
-**Materia:** [NOMBRE DE LA MATERIA]  
-**Fecha de Entrega:** [FECHA]  
+**Estudiante:** Junior Duran 2024-2015
 
 ## Introducción
 Este repositorio contiene la documentación técnica, parámetros de seguridad y scripts de configuración para diversas arquitecturas de Redes Privadas Virtuales (VPN). El laboratorio abarca desde implementaciones Site-to-Site tradicionales y basadas en rutas (VTI), hasta la encapsulación GRE y redes dinámicas multipunto (DMVPN). 
@@ -46,7 +44,9 @@ Simplificar el enrutamiento de la red privada virtual eliminando la dependencia 
 * **Red Túnel Virtual (VTI):** 10.10.10.0/30
 * *(LAN y WAN se mantienen igual que en el escenario anterior).*
 
-![Topología VPN 2](./[NOMBRE_DE_TU_FOTO_TOPOLOGIA_2].png)
+![Topología VPN 2]
+<img width="522" height="309" alt="image" src="https://github.com/user-attachments/assets/3dd8043d-1c49-42b5-834e-723e0fac666d" />
+
 
 ---
 
@@ -61,7 +61,9 @@ Simplificar el enrutamiento de la red privada virtual eliminando la dependencia 
 ### 🗺️ Topología y Direccionamiento
 * **Red Túnel Virtual (VTI):** 10.10.10.0/30
 
-![Topología VPN 3](./[NOMBRE_DE_TU_FOTO_TOPOLOGIA_3].png)
+![Topología VPN 3]
+<img width="522" height="309" alt="image" src="https://github.com/user-attachments/assets/bb734d3a-0eeb-46d2-8477-dcf735d56011" />
+
 
 ---
 
@@ -76,7 +78,9 @@ Encapsular tráfico de red multiprotocolo utilizando túneles GRE (Generic Routi
 ### 🗺️ Topología y Direccionamiento
 * **Red Túnel GRE:** 10.10.10.0/30
 
-![Topología VPN 4](./[NOMBRE_DE_TU_FOTO_TOPOLOGIA_4].png)
+![Topología VPN 4]
+<img width="397" height="275" alt="image" src="https://github.com/user-attachments/assets/2162fcb6-eb40-4f15-b64d-069085f6423a" />
+
 
 ---
 
@@ -91,7 +95,9 @@ Encapsular tráfico de red multiprotocolo utilizando túneles GRE (Generic Routi
 ### 🗺️ Topología y Direccionamiento
 * **Red Túnel GRE:** 10.10.10.0/30
 
-![Topología VPN 5](./[NOMBRE_DE_TU_FOTO_TOPOLOGIA_5].png)
+![Topología VPN 5]
+<img width="324" height="261" alt="image" src="https://github.com/user-attachments/assets/d284e9ce-a3f2-4fb5-910a-24f2b7ae9746" />
+
 
 ---
 
@@ -123,6 +129,8 @@ Optimizar al máximo el enrutamiento de la red multipunto combinando la eficienc
 * **Red DMVPN (Túnel Multipunto):** 172.16.0.0/24
 * **Protocolo de Enrutamiento:** EIGRP (AS 100)
 
-![Topología VPN 7](./[NOMBRE_DE_TU_FOTO_TOPOLOGIA_7].png)
+![Topología VPN 7] 
+<img width="360" height="427" alt="image" src="https://github.com/user-attachments/assets/b9407b45-6824-4f06-9647-c323466136ae" />
+
 
 ---
