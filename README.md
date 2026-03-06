@@ -26,7 +26,11 @@ Establecer un túnel seguro entre dos sucursales utilizando el protocolo IKEv2 p
 * **Red LAN Sede 2:** 192.168.20.0/24
 * **Red WAN (ISP):** 20.24.20.0/30 (R1) y 20.24.20.4/30 (R2)
 
-![Topología VPN 1](./[NOMBRE_DE_TU_FOTO_TOPOLOGIA_1].png)
+![Topología VPN 1]
+
+<img width="358" height="251" alt="image" src="https://github.com/user-attachments/assets/4a99a212-e769-4c9b-9056-87cc6dcc4039" />
+
+
 
 ---
 
