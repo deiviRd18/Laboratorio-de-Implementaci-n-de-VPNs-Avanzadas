@@ -113,7 +113,9 @@ Desplegar una topología Hub-and-Spoke dinámica y escalable. En la Fase 2, se p
 * **Red DMVPN (Túnel Multipunto):** 172.16.0.0/24
 * **Protocolo de Enrutamiento:** EIGRP (AS 100)
 
-![Topología VPN 6](./[NOMBRE_DE_TU_FOTO_TOPOLOGIA_6].png)
+![Topología VPN 6]
+<img width="361" height="423" alt="image" src="https://github.com/user-attachments/assets/3d1eafc5-2488-420a-a18d-97c66dbb7280" />
+
 
 ---
 
